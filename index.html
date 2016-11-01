@@ -1,41 +1,105 @@
 <html>
 <head></head>
 <body>
-	<script src="js/jquery-3.1.1.min.js"></script>
-	<script src="js/modernizr.custom.min.js"></script>
-	<script src="js/pixi.min.js"></script>
+	<script src="js/pixi.js"></script>
 
 	<script>
-		var renderer = PIXI.autoDetectRenderer(800, 600,{backgroundColor : 0x1099bb});
+		// Converts from degrees to radians.
+		Math.radians = function(degrees) {
+			return degrees * Math.PI / 180;
+		};
+
+		// Converts from radians to degrees.
+		Math.degrees = function(radians) {
+			return radians * 180 / Math.PI;
+		};
+	</script>
+	<script>
+		var renderer = PIXI.autoDetectRenderer(400, 400,{backgroundColor : 0x1099bb});
 		document.body.appendChild(renderer.view);
 
 		// create the root of the scene graph
 		var stage = new PIXI.Container();
-
+		var pivot = new PIXI.Container();
+		pivot.position.x = 200;
+		pivot.position.y = 200;
 
 		var graphics = new PIXI.Graphics();
 
-		// set a fill and line style
-		graphics.beginFill(0xFF3300);
-		graphics.lineStyle(4, 0xffd900, 1);
+		pivot.addChild(graphics);
+		stage.addChild(pivot);
 
-		// draw a shape
-		graphics.moveTo(50,50);
-		graphics.lineTo(250, 50);
-		graphics.lineTo(100, 100);
-		graphics.lineTo(50, 50);
-		graphics.endFill();
+		deep = 3;
 
-		stage.addChild(graphics);
+		var graphicsArray = [];
+		var actualContainer = pivot;
+		for(j = 0; j < deep; j++) {
+			newGraphics = new PIXI.Graphics();
+			graphicsArray[graphicsArray.length] = newGraphics;
+			actualContainer.addChild(newGraphics);
+			actualContainer = newGraphics;
+		}
 
+		count = 0;
+		points = [];
 
 		// start animating
 		animate();
+
+
+		function animateRecursive(pivotX, pivotY, j) {
+			gra = graphicsArray[j];
+			gra.clear();
+			gra.position.x = pivotX;
+			gra.position.y = pivotY;
+
+			k = Math.pow(5, j);
+			kSize = Math.pow(3, j);
+			deltaX =  (100/kSize) * Math.cos(Math.radians(count*k));
+			deltaY =  (100/kSize) * Math.sin(Math.radians(count*k));
+
+			// set a fill and line style
+			gra.beginFill(0xFF3300);
+			gra.lineStyle(2, 0xffd900 - (j+1), 1);
+
+			// draw a shape
+			gra.moveTo(0, 0);
+			gra.lineTo(deltaX, deltaY);
+			gra.endFill();
+
+			if (j < deep -1) {
+				newPoint = animateRecursive(deltaX, deltaY, j + 1);
+				return {x: pivotX + newPoint.x, y: pivotY +  newPoint.y};
+			} else {
+				return {x: pivotX + deltaX, y: pivotY+ deltaY};
+			}
+		}
 
 		function animate() {
 
 			requestAnimationFrame(animate);
 
+			graphics.clear();
+
+			count = count + 0.5;
+
+			newPoint = animateRecursive(0, 0, 0);
+
+			points[points.length] = {
+				x:  newPoint.x,
+				y:  newPoint.y
+			};
+
+			// set a fill and line style
+			graphics.beginFill(0xFF3300);
+			graphics.lineStyle(2, 0xffd900, 1);
+
+			// draw a shape
+			graphics.moveTo(0, 0);
+			for(i = 0; i < points.length; i++) {
+				graphics.lineTo(points[i].x, points[i].y);
+			}
+			graphics.endFill();
 
 			// render the root container
 			renderer.render(stage);
